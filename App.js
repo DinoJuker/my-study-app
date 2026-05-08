@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, ScrollView, SafeAreaView, TextInput, Modal } from 'react-native';
 import { Calendar } from 'react-native-calendars';
-import { Clock, Calendar as CalendarIcon, RotateCcw, Plus, X, ChevronUp, ChevronDown } from 'lucide-react-native';
+import { Clock, Calendar as CalendarIcon, RotateCcw, Plus, X, ChevronUp, ChevronDown, Trash2 } from 'lucide-react-native';
 
 const FRASES = [
   "El éxito es la suma de pequeños esfuerzos.",
@@ -19,14 +19,12 @@ export default function App() {
   const [isActive, setIsActive] = useState(false);
   const [frase, setFrase] = useState(FRASES[0]);
   
-  // Estados de la Agenda
   const [modalVisible, setModalVisible] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [taskText, setTaskText] = useState('');
   const [priority, setPriority] = useState('Azul'); 
   const [savedTasks, setSavedTasks] = useState({}); 
 
-  // Fondo Dinámico
   const getDynamicBackground = () => {
     if (!isActive) return '#F5F9FF';
     const progress = seconds / initialSeconds;
@@ -72,11 +70,24 @@ export default function App() {
     if (taskText && selectedDate) {
       setSavedTasks(prev => ({
         ...prev,
-        [selectedDate]: [...(prev[selectedDate] || []), { text: taskText, type: priority }]
+        [selectedDate]: [...(prev[selectedDate] || []), { id: Date.now(), text: taskText, type: priority }]
       }));
       setTaskText('');
       setModalVisible(false);
     }
+  };
+
+  // NUEVA FUNCIÓN PARA ELIMINAR
+  const deleteTask = (date, id) => {
+    const updatedDateTasks = savedTasks[date].filter(task => task.id !== id);
+    const newSavedTasks = { ...savedTasks };
+    
+    if (updatedDateTasks.length === 0) {
+      delete newSavedTasks[date];
+    } else {
+      newSavedTasks[date] = updatedDateTasks;
+    }
+    setSavedTasks(newSavedTasks);
   };
 
   const getPriorityColor = (type) => {
@@ -103,8 +114,8 @@ export default function App() {
           {tomorrowTasks.length > 0 && (
             <View style={styles.alertBox}>
               <Text style={styles.alertTitle}>🔔 MAÑANA:</Text>
-              {tomorrowTasks.map((t, i) => (
-                <Text key={i} style={[styles.alertText, {color: getPriorityColor(t.type)}]}>• {t.text}</Text>
+              {tomorrowTasks.map((t) => (
+                <Text key={t.id} style={[styles.alertText, {color: getPriorityColor(t.type)}]}>• {t.text}</Text>
               ))}
             </View>
           )}
@@ -148,9 +159,12 @@ export default function App() {
             {Object.keys(savedTasks).sort().map(date => (
               <View key={date} style={styles.dateGroup}>
                 <Text style={styles.dateText}>{date}</Text>
-                {savedTasks[date].map((t, i) => (
-                  <View key={i} style={[styles.taskCard, {borderLeftColor: getPriorityColor(t.type)}]}>
-                    <Text>• {t.text}</Text>
+                {savedTasks[date].map((t) => (
+                  <View key={t.id} style={[styles.taskCard, {borderLeftColor: getPriorityColor(t.type)}]}>
+                    <Text style={{flex: 1}}>• {t.text}</Text>
+                    <TouchableOpacity onPress={() => deleteTask(date, t.id)}>
+                      <Trash2 color="#CCC" size={20} />
+                    </TouchableOpacity>
                   </View>
                 ))}
               </View>
@@ -166,6 +180,7 @@ export default function App() {
         </View>
       )}
 
+      {/* Modal para agregar tarea */}
       <Modal visible={modalVisible} animationType="slide" transparent={true}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalContent}>
@@ -223,7 +238,7 @@ const styles = StyleSheet.create({
   calendarView: { flex: 1, padding: 20 },
   sectionTitle: { fontSize: 24, fontWeight: 'bold', marginTop: 20 },
   subTitle: { fontWeight: 'bold', marginTop: 20, marginBottom: 10 },
-  taskCard: { backgroundColor: '#FFF', padding: 15, borderRadius: 10, marginBottom: 8, borderLeftWidth: 6 },
+  taskCard: { backgroundColor: '#FFF', padding: 15, borderRadius: 10, marginBottom: 8, borderLeftWidth: 6, flexDirection: 'row', alignItems: 'center' },
   dateGroup: { marginBottom: 15 },
   dateText: { fontWeight: 'bold', color: '#4A90E2' },
   fab: { position: 'absolute', right: 25, bottom: 110, width: 65, height: 65, borderRadius: 35, backgroundColor: '#4A90E2', alignItems: 'center', justifyContent: 'center', elevation: 6 },
